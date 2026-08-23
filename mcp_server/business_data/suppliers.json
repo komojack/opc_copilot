@@ -1,0 +1,41 @@
+{
+  "_comment": "供应商实体档案。agreed_rate = 当初谈定的费率（来源见 rate_source），latest_bill = 最近一期账单实际计费，两者不一致即为方案场景 3「供应商核价」。金额单位：人民币元。",
+  "suppliers": [
+    {
+      "supplier_id": "SUP-INK",
+      "name": "墨点印务",
+      "category": "印刷",
+      "agreed_rate": {"unit": "份", "price": 3.2, "min_batch": 500},
+      "rate_source": "2025-11-08 微信确认，报价单 SQ-INK-2025-11",
+      "latest_bill": {"period": "2026-07", "quantity": 1200, "unit_price": 3.8, "amount": 4560},
+      "expected_amount": 3840,
+      "variance": 720,
+      "special_terms": "单批超 1000 份可再降 5%，需提前一周下单",
+      "notes": "本期单价高于约定 0.6 元/份，且未适用大批量折扣，需核价"
+    },
+    {
+      "supplier_id": "SUP-LENS",
+      "name": "长焦影像",
+      "category": "摄影外包",
+      "agreed_rate": {"unit": "日", "price": 2400, "min_batch": 1},
+      "rate_source": "2026-01-14 邮件确认，报价单 SQ-LENS-2026-01",
+      "latest_bill": {"period": "2026-07", "quantity": 3, "unit_price": 2400, "amount": 7200},
+      "expected_amount": 7200,
+      "variance": 0,
+      "special_terms": "含基础修图，精修另计 300 元/张",
+      "notes": "费率相符"
+    },
+    {
+      "supplier_id": "SUP-TRANS",
+      "name": "语桥翻译",
+      "category": "翻译",
+      "agreed_rate": {"unit": "千字", "price": 180, "min_batch": 1},
+      "rate_source": "2025-09-22 合同附件 A",
+      "latest_bill": {"period": "2026-07", "quantity": 12.5, "unit_price": 180, "amount": 2250},
+      "expected_amount": 2250,
+      "variance": 0,
+      "special_terms": "技术类文档上浮 20%，需事先书面确认后方可计费",
+      "notes": "费率相符；技术类上浮条款本期未触发"
+    }
+  ]
+}

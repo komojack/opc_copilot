@@ -1,0 +1,50 @@
+{
+  "_comment": "合同档案，支撑方案场景 4「续约决策」。金额单位：人民币元。",
+  "contracts": [
+    {
+      "contract_id": "CT-ABC-2025",
+      "client_id": "CLIENT-ABC",
+      "start": "2025-06-15",
+      "end": "2026-12-31",
+      "annual_value": 180000,
+      "discount_pct": 12,
+      "payment_terms": "季度结算，账期 30 天",
+      "auto_renew": false,
+      "days_to_expiry": 132
+    },
+    {
+      "contract_id": "CT-CORE-2024",
+      "client_id": "CLIENT-CORE",
+      "start": "2024-06-01",
+      "end": "2027-05-31",
+      "annual_value": 240000,
+      "discount_pct": 15,
+      "payment_terms": "月结，账期 45 天",
+      "auto_renew": true,
+      "days_to_expiry": 283
+    },
+    {
+      "contract_id": "CT-DELTA-2025",
+      "client_id": "CLIENT-DELTA",
+      "start": "2025-02-20",
+      "end": "2026-09-30",
+      "annual_value": 192000,
+      "discount_pct": 8,
+      "payment_terms": "月结，账期 30 天",
+      "auto_renew": false,
+      "days_to_expiry": 40,
+      "notes": "含 30 天无理由终止条款；客户已口头提出续约时希望折扣提到 12%"
+    },
+    {
+      "contract_id": "CT-ECHO-2025",
+      "client_id": "CLIENT-ECHO",
+      "start": "2025-12-10",
+      "end": "2026-12-09",
+      "annual_value": 96000,
+      "discount_pct": 5,
+      "payment_terms": "单次结算，账期 15 天",
+      "auto_renew": false,
+      "days_to_expiry": 110
+    }
+  ]
+}
