@@ -184,15 +184,15 @@ def parse_tier(reply: str) -> str | None:
     """从回复里抽出 [auto] / [escalate] / [refuse] 档位标记。
 
     只认开头附近的标记：正文里讨论"这种情况属于 escalate"不算表态。
-    取前 200 字符内第一个出现的标记。
+    取前 2048 字符内第一个出现的标记。
 
     Nova 等模型会把思维链 <thinking>...</thinking> 漏进正文，把档位标记
-    顶出前 200 字符窗口。这里先剥掉 thinking 块再检测——它对档位判定是噪声。
+    顶出前 2048 字符窗口。这里先剥掉 thinking 块再检测——它对档位判定是噪声。
     （模型输出里混思维链是回复质量问题，归 Phase 7 归因处理；这里只保证
     评测的档位判定不被它带偏。）
     """
     stripped = strip_thinking(reply)
-    head = stripped[:200].lower()
+    head = stripped[:2048].lower()
     hits = [(head.find(f"[{t}]"), t) for t in ("auto", "escalate", "refuse")]
     hits = [(pos, t) for pos, t in hits if pos >= 0]
     if not hits:
