@@ -1,20 +1,3 @@
-"""快速验证 MCP 三工具是否可用 —— 终端直接跑。
-
-运行前提（二选一）：
-  - 刚跑完 06_deploy_mcp_runtime.py，有 .mcp_state.json     → 直连 Runtime
-  - 已跑完 07_setup_gateway.py，有 .gateway_state.json        → 走 Gateway
-
-用法：
-  /usr/bin/python3.11 scripts/06b_smoke_test.py            # 默认从 .gateway_state 取
-  /usr/bin/python3.11 scripts/06b_smoke_test.py --runtime  # 强制直连 Runtime
-
-它会做三件事：
-  1. 连上 MCP，发 tools/list，确认三个工具都在
-  2. 实调 query_business_data(query_type="list_entities")，确认不是空壳
-  3. 实调 kb_search(query="老客户折扣上限是多少")，确认 KB_ID 注入对、能检索
-
-只验"部署的东西活着"，不跑评测集。
-"""
 import json
 import os
 import sys
@@ -32,14 +15,7 @@ def load(path: str) -> dict | None:
 
 
 def signed_post(url: str, payload: dict, region: str) -> dict:
-    """对 AgentCore endpoint 做 SigV4 签名 POST，解析 MCP 的 SSE 响应。
 
-    两个坑（实测）：
-    1. 响应是 SSE 流，一行 data: 可能含 \\r\\n 被拆行；要按空行(\\n\\n)切事件，
-       把同一事件内所有 data: 行的内容拼接成一条 JSON 再解析。
-    2. 中文会显示成 æ£ç´¢ 乱码——必须用 resp.content(字节) 按 UTF-8 解码，
-       不能用 resp.text（requests 按 Latin-1 猜的编码不对）。
-    """
     import requests
     from botocore.auth import SigV4Auth
     from botocore.awsrequest import AWSRequest
