@@ -1,5 +1,5 @@
 """
-Phase 1 · 跑评测集，记录 baseline 分数
+Phase 1 · 跑评测集，记录 Harness 分数
 """
 
 import json
@@ -14,8 +14,8 @@ import boto3
 from common import (
     DEFAULT_MODEL_ID,
     EVALSET_FILE,
+    EVAL_DIR,
     JUDGE_MODEL_ID_DEFAULT,
-    PROJECT_ROOT,
     consume_stream,
     load_harness_state,
     load_json,
@@ -109,7 +109,7 @@ def main() -> int:
     run_tag = uuid.uuid4().hex[:6]
 
     cases = load_json(EVALSET_FILE)["cases"]
-    results_file = os.path.join(PROJECT_ROOT, f".eval_results_phase{phase}.json")
+    results_file = os.path.join(EVAL_DIR, f"eval_results_phase{phase}.json")
 
     client = boto3.client("bedrock-agentcore", region_name=region)
     bedrock = boto3.client("bedrock-runtime", region_name=region) if use_judge else None
@@ -247,7 +247,7 @@ def main() -> int:
     print("\n各 Phase 对比：")
     print(f"  {'Phase':<7}{'档位':<10}{'依据':<10}{'工具':<10}已启用")
     for p in range(1, 9):
-        f = os.path.join(PROJECT_ROOT, f".eval_results_phase{p}.json")
+        f = os.path.join(EVAL_DIR, f"eval_results_phase{p}.json")
         if not os.path.exists(f):
             continue
         s = load_json(f)["summary"]
