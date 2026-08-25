@@ -17,13 +17,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import boto3
 from common import (
     DEFAULT_MODEL_ID,
-    PROJECT_ROOT,
+    EVAL_DIR,
     load_harness_state,
     load_json,
     save_json,
 )
 
-REPORT_FILE = os.path.join(PROJECT_ROOT, ".attribution_report.json")
+REPORT_FILE = os.path.join(EVAL_DIR, "attribution_report.json")
 EVALUATOR_NAME = "opc_copilot_escalation_judge_v1"
 
 JUDGE_INSTRUCTIONS = """你在评估一个一人公司运营决策助理，判断依据是升级确认矩阵的三档：
@@ -135,7 +135,7 @@ def register_evaluator(region: str, harness_state: dict) -> int:
 
 
 def latest_phase_results() -> tuple[int, dict] | tuple[None, None]:
-    files = glob.glob(os.path.join(PROJECT_ROOT, ".eval_results_phase*.json"))
+    files = glob.glob(os.path.join(EVAL_DIR, "eval_results_phase*.json"))
     if not files:
         return None, None
     best_phase, best_file = -1, None
@@ -254,8 +254,8 @@ def main() -> int:
     print("=" * 60)
     print("  1. 按上面的修正清单改对应文件")
     print("  2. 重跑受影响的部署脚本（05 / 06 / 10 / 11）")
-    print(f"  3. 备份当前结果：mv .eval_results_phase{phase}.json "
-          f".eval_results_phase{phase}_before.json")
+    print(f"  3. 备份当前结果：mv eval/eval_results_phase{phase}.json "
+          f"eval/eval_results_phase{phase}_before.json")
     print("  4. python scripts/04_run_evalset.py")
     print("  5. 对比两份结果，确认修正确实有效、且没有让原本通过的用例退化")
     return 0
