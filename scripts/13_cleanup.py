@@ -13,7 +13,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import boto3
-from common import PROJECT_ROOT, load_json
+from common import EVAL_DIR, PROJECT_ROOT, load_json
 
 STATE_FILES = {
     "harness": ".harness_state.json",
@@ -144,12 +144,20 @@ def main() -> int:
 
     # ---- 5. 本地状态文件 ----
     print("\n[5] 本地状态文件")
+    # 根目录的点开头状态文件（.harness_state.json 等）
     local = sorted(
         f for f in os.listdir(PROJECT_ROOT)
         if f.startswith(".") and f.endswith(".json")
     )
+    # eval/ 目录下的评测产物（eval_results_phase*.json、attribution_report.json）
+    eval_files = sorted(
+        f for f in os.listdir(EVAL_DIR)
+        if f.endswith(".json")
+    ) if os.path.isdir(EVAL_DIR) else []
     for filename in local:
         step(filename, lambda f=filename: os.remove(os.path.join(PROJECT_ROOT, f)))
+    for filename in eval_files:
+        step(f"eval/{filename}", lambda f=filename: os.remove(os.path.join(EVAL_DIR, f)))
 
     print("\n" + "=" * 60)
     if dry_run:
