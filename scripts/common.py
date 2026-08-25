@@ -4,7 +4,9 @@
 状态文件都放在 opc_copilot/ 根目录下、以 . 开头：
     .env_state.json      01_check_env.py 写，环境快照
     .harness_state.json  02_create_harness.py 写，Harness ARN 等
-    .baseline_results.json / .eval_results_phaseN.json  评测结果
+评测结果（含归因报告）统一放在 eval/ 目录下：
+    eval_results_phaseN.json    04_run_evalset.py 写，每轮 Phase 的用例明细
+    attribution_report.json     12_evaluations.py 写，失败归因报告
 """
 
 import json
@@ -21,6 +23,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV_STATE_FILE = os.path.join(PROJECT_ROOT, ".env_state.json")
 HARNESS_STATE_FILE = os.path.join(PROJECT_ROOT, ".harness_state.json")
 EVALSET_FILE = os.path.join(PROJECT_ROOT, "evalset", "cases.json")
+
+# 评测产物统一落到 eval/ 目录，避免在项目根目录散落一地点开头文件。
+# 归因报告（attribution_report.json）也写在这里。
+EVAL_DIR = os.path.join(PROJECT_ROOT, "eval")
+os.makedirs(EVAL_DIR, exist_ok=True)
 
 HARNESS_NAME = "opc_ops_copilot"
 
