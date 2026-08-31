@@ -1,0 +1,62 @@
+{
+  "_comment": "收付款流水。matched_order 为 null 即为方案场景 2「对账」——款项已进账但对不上订单。金额单位：人民币元。",
+  "transactions": [
+    {
+      "txn_id": "TXN-2026-0712",
+      "date": "2026-07-12",
+      "direction": "in",
+      "amount": 48000,
+      "channel": "对公银行",
+      "counterparty_raw": "ABC科技有限公司",
+      "matched_client": "CLIENT-ABC",
+      "matched_order": "Q-2026-031",
+      "status": "reconciled"
+    },
+    {
+      "txn_id": "TXN-2026-0728",
+      "date": "2026-07-28",
+      "direction": "in",
+      "amount": 15600,
+      "channel": "第三方收款平台",
+      "counterparty_raw": "个人账户 尾号4471",
+      "matched_client": null,
+      "matched_order": null,
+      "status": "unmatched",
+      "notes": "金额对不上任何未结报价单；付款方为个人账户，无备注"
+    },
+    {
+      "txn_id": "TXN-2026-0803",
+      "date": "2026-08-03",
+      "direction": "in",
+      "amount": 72000,
+      "channel": "对公银行",
+      "counterparty_raw": "核芯制造股份",
+      "matched_client": "CLIENT-CORE",
+      "matched_order": "Q-2026-044",
+      "status": "reconciled"
+    },
+    {
+      "txn_id": "TXN-2026-0805",
+      "date": "2026-08-05",
+      "direction": "out",
+      "amount": 4560,
+      "channel": "对公银行",
+      "counterparty_raw": "墨点印务",
+      "matched_client": null,
+      "matched_order": "BILL-INK-2026-07",
+      "status": "disputed",
+      "notes": "已付款，但金额高于约定费率，待核价追回 720 元"
+    },
+    {
+      "txn_id": "TXN-2026-0808",
+      "date": "2026-08-08",
+      "direction": "in",
+      "amount": 32000,
+      "channel": "对公银行",
+      "counterparty_raw": "回声传媒",
+      "matched_client": "CLIENT-ECHO",
+      "matched_order": "Q-2026-039",
+      "status": "reconciled"
+    }
+  ]
+}

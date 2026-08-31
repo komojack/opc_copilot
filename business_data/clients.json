@@ -1,0 +1,75 @@
+{
+  "_comment": "客户实体档案。检索单元 = 一个客户的完整档案，由 query_business_data 按 client_id 精确取或按条件过滤，不进向量库。金额单位：人民币元。数据基准日 2026-08-21。",
+  "clients": [
+    {
+      "client_id": "CLIENT-ABC",
+      "name": "ABC 科技",
+      "first_cooperation": "2025-06-15",
+      "months_cooperated": 14,
+      "status": "active",
+      "total_revenue": 186000,
+      "overdue_amount": 8200,
+      "overdue_days": 37,
+      "discount_used_this_year_pct": 12,
+      "last_quote": {"quote_id": "Q-2026-031", "date": "2026-05-12", "amount": 48000, "discount_pct": 12},
+      "special_terms": "季度结算，发票需附工时明细",
+      "notes": "长期客户，但本年出现首次逾期"
+    },
+    {
+      "client_id": "CLIENT-BLUE",
+      "name": "蓝湾文化",
+      "first_cooperation": null,
+      "months_cooperated": 0,
+      "status": "prospect",
+      "total_revenue": 0,
+      "overdue_amount": 0,
+      "overdue_days": 0,
+      "discount_used_this_year_pct": 0,
+      "last_quote": null,
+      "special_terms": null,
+      "notes": "新客户，尚未成单，询价中"
+    },
+    {
+      "client_id": "CLIENT-CORE",
+      "name": "核芯制造",
+      "first_cooperation": "2024-06-01",
+      "months_cooperated": 26,
+      "status": "active",
+      "total_revenue": 420000,
+      "overdue_amount": 0,
+      "overdue_days": 0,
+      "discount_used_this_year_pct": 15,
+      "last_quote": {"quote_id": "Q-2026-044", "date": "2026-07-03", "amount": 72000, "discount_pct": 15},
+      "special_terms": "年度框架协议，单次派工无需另行报价",
+      "notes": "本年折扣额度已用满 15%"
+    },
+    {
+      "client_id": "CLIENT-DELTA",
+      "name": "德尔塔咨询",
+      "first_cooperation": "2025-02-20",
+      "months_cooperated": 18,
+      "status": "active",
+      "total_revenue": 254000,
+      "overdue_amount": 0,
+      "overdue_days": 0,
+      "discount_used_this_year_pct": 8,
+      "last_quote": {"quote_id": "Q-2026-018", "date": "2026-02-25", "amount": 96000, "discount_pct": 8},
+      "special_terms": "合同含 30 天无理由终止条款",
+      "notes": "合同 2026-09-30 到期，续约谈判中"
+    },
+    {
+      "client_id": "CLIENT-ECHO",
+      "name": "回声传媒",
+      "first_cooperation": "2025-12-10",
+      "months_cooperated": 8,
+      "status": "active",
+      "total_revenue": 64000,
+      "overdue_amount": 0,
+      "overdue_days": 0,
+      "discount_used_this_year_pct": 5,
+      "last_quote": {"quote_id": "Q-2026-039", "date": "2026-06-18", "amount": 32000, "discount_pct": 5},
+      "special_terms": null,
+      "notes": "合作未满 12 个月，尚不适用老客户价"
+    }
+  ]
+}
