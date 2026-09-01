@@ -2,8 +2,8 @@
 Phase 8 · 资源清理
 --------------------------------------------------------
 运行：
-    python scripts/13_cleanup.py            打印将要删除的资源，不实际执行
-    python scripts/13_cleanup.py --yes      真正执行
+    /usr/bin/python3.11 opc_copilot/scripts/13_cleanup.py            打印将要删除的资源，不实际执行
+    /usr/bin/python3.11 opc_copilot/scripts/13_cleanup.py --yes      真正执行
 """
 
 import os
@@ -13,6 +13,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import boto3
+from botocore.exceptions import ClientError
+
 from common import EVAL_DIR, PROJECT_ROOT, load_json
 
 STATE_FILES = {
@@ -57,6 +59,40 @@ def empty_bucket(s3, bucket: str) -> None:
         ]
         if objects:
             s3.delete_objects(Bucket=bucket, Delete={"Objects": objects})
+
+
+def delete_delivery_resources(logs, runtime_id: str) -> None:
+    """删掉 Runtime 的可观测性投递（delivery / source / destination）。
+
+    06 部署 Runtime 后 starter toolkit 会自动建这三个资源（TRACES 投递到
+    X-Ray）。AWS 文档要求删掉 log-generating resource 后手动清理它们，
+    否则会残留在账户里——它们引用已删除的 Runtime ARN，且删栈删不掉。
+    名字约定（toolkit ObservabilityDeliveryManager）：<runtime_id>-traces-source /
+    -traces-destination；delivery 没有独立名字，靠 describe_deliveries 按
+    deliverySourceName 匹配拿 id。若从未部署成功过（没有投递），静默跳过。
+    顺序必须是 delivery → source：source 有关联 delivery 时删不掉（ConflictException）。
+    """
+    def _ignore_missing(fn, **kw):
+        try:
+            fn(**kw)
+        except ClientError as e:
+            if e.response["Error"]["Code"] != "ResourceNotFoundException":
+                raise
+
+    source_name = f"{runtime_id}-traces-source"
+    dest_name = f"{runtime_id}-traces-destination"
+
+    # 1. delivery：按 source 名匹配拿 id 再删
+    for page in logs.get_paginator("describe_deliveries").paginate():
+        for d in page.get("deliveries", []):
+            if d.get("deliverySourceName") == source_name:
+                _ignore_missing(logs.delete_delivery, id=d["id"])
+
+    # 2. source
+    _ignore_missing(logs.delete_delivery_source, name=source_name)
+
+    # 3. destination（专属于这个 runtime，可安全删）
+    _ignore_missing(logs.delete_delivery_destination, name=dest_name)
 
 
 def main() -> int:
@@ -116,6 +152,10 @@ def main() -> int:
             rid = mcp["runtime_id"]
             step(f"Runtime {rid}",
                  lambda: control.delete_agent_runtime(agentRuntimeId=rid))
+            # 可观测性投递引用的正是这个 runtime，先删 Runtime 再清投递
+            logs = boto3.client("logs", region_name=region)
+            step(f"TRACES 投递（{rid}-traces-*）",
+                 lambda: delete_delivery_resources(logs, rid))
 
         if mcp.get("ecr_repo_name"):
             ecr = boto3.client("ecr", region_name=region)
@@ -214,7 +254,7 @@ def main() -> int:
 
     print("\n" + "=" * 60)
     if dry_run:
-        print("以上为预演。确认无误后执行：python scripts/13_cleanup.py --yes")
+        print("以上为预演。确认无误后执行：/usr/bin/python3.11 opc_copilot/scripts/13_cleanup.py --yes")
         return 0
 
     if failures:
