@@ -66,11 +66,15 @@ def delete_delivery_resources(logs, runtime_id: str) -> None:
 
     06 部署 Runtime 后 starter toolkit 会自动建这三个资源（TRACES 投递到
     X-Ray）。AWS 文档要求删掉 log-generating resource 后手动清理它们，
-    否则会残留在账户里——它们引用已删除的 Runtime ARN，且删栈删不掉。
-    名字约定（toolkit ObservabilityDeliveryManager）：<runtime_id>-traces-source /
-    -traces-destination；delivery 没有独立名字，靠 describe_deliveries 按
-    deliverySourceName 匹配拿 id。若从未部署成功过（没有投递），静默跳过。
-    顺序必须是 delivery → source：source 有关联 delivery 时删不掉（ConflictException）。
+    否则会残留在账户里。名字约定（toolkit ObservabilityDeliveryManager）：
+    <runtime_id>-traces-source / -traces-destination；delivery 没有独立名字，
+    靠 describe_deliveries 按 deliverySourceName 匹配拿 id。
+
+    注意：CFN 给实例角色的权限刻意只授创建（Put/Create），不含
+    Describe/Delete——删除投递属敏感操作。所以本函数在实验环境里
+    预期会在 describe 就 AccessDeniedException，由 step() 记为一条失败
+    然后继续，不影响其他资源清理。残留的 delivery 需要时用管理员
+    权限手工删（顺序：delivery → source → destination）。
     """
     def _ignore_missing(fn, **kw):
         try:
