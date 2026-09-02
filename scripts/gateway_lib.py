@@ -330,7 +330,7 @@ def create_policy_from_text(client, engine_id: str, gateway_arn: str,
     slug = hashlib.sha256(
         f"{gateway_arn}|{GATEWAY_TARGET_NAME}|{raw_text}".encode("utf-8")
     ).hexdigest()[:8]
-    full_name = f"{base_name}_{slug}"
+    full_name = f"{base_name[:39]}_{slug}"
 
     existing = [
         p["policyId"] for p in
