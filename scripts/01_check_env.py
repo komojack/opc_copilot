@@ -2,10 +2,7 @@
 Phase 0 · 云端环境探活
 --------------------------------------------------------
 运行：
-    /usr/bin/python3.11 opc_copilot/scripts/01_check_env.py
-
-可选环境变量：
-    OPC_CFN_STACK_NAME  显式指定 CFN 栈名。
+    python scripts/01_check_env.py
 """
 
 import json
@@ -25,15 +22,11 @@ ENV_STATE_FILE = os.path.join(PROJECT_ROOT, ".env_state.json")
 KB_NAME = "opc-product-knowledge-base"
 
 # CFN 栈名，从其 Outputs 读执行角色 ARN（比 list_roles 子串匹配可靠）。
-# 允许显式覆盖；不设时自动发现——栈名写死默认值会在部署名不同（如 agentcore-assist）
-# 时查错栈，进而误触发 list_roles 回退，回退的子串匹配又可能命中旧栈遗留角色。
-# 发现路径不用 list_stacks：实例角色常只授了 describe_stacks 而没授 list_stacks。
-ROLE_OUTPUT_KEY = "AgentCoreRuntimeExecutionRoleArn"
-CFN_STACK_NAME = os.environ.get("OPC_CFN_STACK_NAME", "")
+CFN_STACK_NAME = os.environ.get("OPC_CFN_STACK_NAME", "agentcore")
 
-# 回退/反推匹配时用。OpcCopilotHarnessExecutionRole 不是 CFN 栈产物，
-# 物理名不带栈名前缀，无法反推，留在列表里只会制造子串误命中。
+# list_roles 回退匹配时用
 EXECUTION_ROLE_CANDIDATES = [
+    "OpcCopilotHarnessExecutionRole",
     "AgentCoreRuntimeExecutionRole",
 ]
 
@@ -127,127 +120,22 @@ def check_knowledge_base(region: str) -> str | None:
     return None
 
 
-def _describe_stack(cfn, name: str) -> dict | None:
-    """按名取栈；不存在/无权限返回 None（探测属正常路径，不打告警刷屏）。"""
+def find_role_from_cfn_outputs(region: str) -> str | None:
+    """从 CFN 栈 Outputs 读 AgentCoreRuntimeExecutionRoleArn。"""
+    cfn = boto3.client("cloudformation", region_name=region)
     try:
-        stacks = cfn.describe_stacks(StackName=name).get("Stacks", [])
-        return stacks[0] if stacks else None
-    except Exception:
+        resp = cfn.describe_stacks(StackName=CFN_STACK_NAME)
+    except Exception as e:
+        # 不静默吞掉——打印真实原因，否则会误判"未导出"而走回退
+        print(f"  ⚠ describe_stacks({CFN_STACK_NAME}) 失败：{type(e).__name__} - {e}")
         return None
-
-
-def _role_output(stack: dict | None) -> str | None:
-    if not stack:
+    stacks = resp.get("Stacks", [])
+    if not stacks:
         return None
-    for out in stack.get("Outputs", []) or []:
-        if out.get("OutputKey") == ROLE_OUTPUT_KEY:
+    for out in stacks[0].get("Outputs", []) or []:
+        if out.get("OutputKey") == "AgentCoreRuntimeExecutionRoleArn":
             return out["OutputValue"]
     return None
-
-
-_role_names_cache: list[str] | None = None
-
-
-def _matching_role_names() -> list[str] | None:
-    """list_roles 里名字含候选关键字的角色名；None=列举失败，[]=确无匹配。
-
-    结果缓存，整个进程只列举一次（自动发现与回退路径共用）。
-    """
-    global _role_names_cache
-    if _role_names_cache is not None:
-        return _role_names_cache
-    try:
-        iam = boto3.client("iam")
-        paginator = iam.get_paginator("list_roles")
-        names = [
-            r["RoleName"]
-            for page in paginator.paginate()
-            for r in page["Roles"]
-            if any(c in r["RoleName"] for c in EXECUTION_ROLE_CANDIDATES)
-        ]
-    except Exception as e:
-        print(f"  ⚠ list_roles 失败：{type(e).__name__} - {e}")
-        return None  # 不缓存失败——留 None 标记，回退路径据此给出准确提示
-    _role_names_cache = names
-    return names
-
-
-def _discover_role(region: str) -> str | None:
-    """从 list_roles 反推候选栈名，再逐个 describe_stacks 验证。
-
-    CFN 给栈内 IAM 角色的物理名是 <栈名>-<逻辑ID>-<随机后缀>，例如
-    agentcore-assist-AgentCoreRuntimeExecutionRole-AbCdEfGhIj。据此把
-    角色物理名截去 -<逻辑ID>-<后缀> 即得候选栈名，再 describe 验证 Outputs。
-    不走 list_stacks——实验环境的实例角色常只授按名 describe，没授列举。
-    多个栈都导出了角色时取 CreationTime 最新的（最新的部署优先）。
-    """
-    role_names = _matching_role_names()
-    if role_names is None:
-        print("  ⚠ 无法列举 IAM 角色（权限不足），自动发现中止")
-        return None
-
-    candidates: list[str] = []
-    for rn in role_names:
-        for c in EXECUTION_ROLE_CANDIDATES:
-            marker = f"-{c}-"
-            if marker in rn:
-                stack_name = rn.split(marker)[0]
-                if stack_name and stack_name not in candidates:
-                    candidates.append(stack_name)
-                break
-
-    if not candidates:
-        return None
-
-    cfn = boto3.client("cloudformation", region_name=region)
-    hits: list[tuple] = []
-    for name in candidates:
-        stack = _describe_stack(cfn, name)
-        role = _role_output(stack)
-        if stack and role:
-            hits.append((stack.get("CreationTime"), name, role))
-    if not hits:
-        return None
-    _, stack_name, role = max(hits, key=lambda t: t[0])
-    # 回填模块级常量，让状态快照记下实际使用的栈名
-    globals()["CFN_STACK_NAME"] = stack_name
-    print(f"  · 自动发现栈：{stack_name}" + (
-        f"（候选：{', '.join(n for _, n, _ in hits)}）" if len(hits) > 1 else ""
-    ))
-    return role
-
-
-def find_role_from_cfn_outputs(region: str) -> str | None:
-    """从 CFN 栈 Outputs 读 AgentCoreRuntimeExecutionRoleArn。
-
-    显式指定栈名（OPC_CFN_STACK_NAME）时只查那个栈；查无此栈或未导出该
-    Output 时打印原因并降级到自动发现——导出了这个 Output 的活跃栈即
-    部署了 template-global.yaml 的栈，比 list_roles 子串匹配可靠。
-    """
-    cfn = boto3.client("cloudformation", region_name=region)
-
-    if not CFN_STACK_NAME:
-        role = _discover_role(region)
-        if not role:
-            print(f"  ⚠ 自动发现未找到导出 {ROLE_OUTPUT_KEY} 的栈")
-        return role
-
-    try:
-        stacks = cfn.describe_stacks(StackName=CFN_STACK_NAME).get("Stacks", [])
-    except Exception as e:
-        # 不静默吞掉——打印真实原因（栈不存在 vs 权限不足），再降级发现
-        print(f"  ⚠ describe_stacks({CFN_STACK_NAME}) 失败：{type(e).__name__} - {e}")
-        stacks = []
-
-    role = _role_output(stacks[0] if stacks else None)
-    if role:
-        return role
-
-    if not stacks:
-        print(f"  ⚠ 栈 {CFN_STACK_NAME} 查询未果，降级自动发现")
-    else:
-        print(f"  ⚠ 栈 {CFN_STACK_NAME} 未导出 {ROLE_OUTPUT_KEY}，降级自动发现")
-    return _discover_role(region)
 
 
 def check_execution_role(region: str, account_id: str) -> str | None:
@@ -256,32 +144,35 @@ def check_execution_role(region: str, account_id: str) -> str | None:
     role_arn = find_role_from_cfn_outputs(region)
 
     if not role_arn:
-        print("  ⚠ CFN 路径未取到角色 ARN，回退 list_roles 匹配")
-        role_names = _matching_role_names()
-        if not role_names:  # None（列举失败）或 []（确无匹配角色）
-            if role_names is None:
-                notes.append(
-                    "无法列举 IAM 角色确认执行角色（权限不足属正常）。"
-                    f"可手工把角色 ARN 填入 {ENV_STATE_FILE} 的 execution_role_arn 字段。"
-                )
-            else:
-                notes.append(
-                    "未找到执行角色。请确认已部署 template-global.yaml，"
-                    "或用 OPC_CFN_STACK_NAME 指定部署的栈名。"
-                )
-            print("  ⚠ 未找到执行角色")
+        print(f"  ⚠ CFN 栈 {CFN_STACK_NAME} 未导出角色 ARN，回退 list_roles 匹配")
+        iam = boto3.client("iam")
+        all_names: list[str] = []
+        try:
+            paginator = iam.get_paginator("list_roles")
+            for page in paginator.paginate():
+                all_names.extend(r["RoleName"] for r in page["Roles"])
+        except Exception as e:
+            notes.append(f"列举 IAM 角色失败（权限不足属正常）：{type(e).__name__}")
+            print(f"  ⚠ 无法列举角色：{type(e).__name__}")
             return None
 
-        role_name = sorted(role_names)[-1]
-        # 回退路径本就不可靠（可能命中旧栈遗留角色），明确标注存疑
-        notes.append(
-            f"执行角色 {role_name} 来自 list_roles 回退匹配（非 CFN 栈输出），"
-            f"若后续权限报错请以 OPC_CFN_STACK_NAME 指定正确栈名重跑。"
-        )
+        role_name = None
+        for candidate in EXECUTION_ROLE_CANDIDATES:
+            match = next((n for n in all_names if candidate in n), None)
+            if match:
+                role_name = match
+                break
+
+        if not role_name:
+            notes.append(
+                f"未找到执行角色。请确认 CFN 栈 {CFN_STACK_NAME} 已部署 template-global.yaml。"
+            )
+            print(f"  ⚠ 未找到执行角色")
+            return None
+
         role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
 
-    src = f"（来自栈 {CFN_STACK_NAME}）" if CFN_STACK_NAME else "（回退匹配，未确认所属栈）"
-    print(f"  ✓ {role_arn.split('/')[-1]}{src}")
+    print(f"  ✓ {role_arn.split('/')[-1]}")
 
     iam = boto3.client("iam")
     try:
@@ -339,9 +230,7 @@ def main() -> int:
         # 02(Harness) 和 06(Runtime) 都用 CFN 的 AgentCoreRuntimeExecutionRole
         "execution_role_arn": role_arn,
         "runtime_execution_role_arn": role_arn,
-        # 全路径回退到 list_roles 时可能仍未发现栈名，记 null 而非空串——
-        # 空串会让下游 env.get('cfn_stack_name', 'agentcore') 拿到 "" 而非默认值
-        "cfn_stack_name": CFN_STACK_NAME or None,
+        "cfn_stack_name": CFN_STACK_NAME,
         "boto3_version": boto3.__version__,
         "harness_api_available": boto3_ok,
     }
