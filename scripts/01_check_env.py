@@ -5,11 +5,7 @@ Phase 0 · 云端环境探活
     /usr/bin/python3.11 opc_copilot/scripts/01_check_env.py
 
 可选环境变量：
-    OPC_CFN_STACK_NAME  显式指定 CFN 栈名。不设则自动发现：从 list_roles 里
-                        AgentCoreRuntimeExecutionRole 角色的物理名反推候选栈名
-                        （<栈名>-<逻辑ID>-<随机后缀>），逐个 describe_stacks 找
-                        导出了 AgentCoreRuntimeExecutionRoleArn 的栈。
-                        不用 list_stacks——实验环境的角色通常没授这个权限。
+    OPC_CFN_STACK_NAME  显式指定 CFN 栈名。
 """
 
 import json
