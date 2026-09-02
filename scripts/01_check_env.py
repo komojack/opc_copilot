@@ -128,6 +128,8 @@ def find_role_from_cfn_outputs(region: str) -> str | None:
     except Exception as e:
         # 不静默吞掉——打印真实原因，否则会误判"未导出"而走回退
         print(f"  ⚠ describe_stacks({CFN_STACK_NAME}) 失败：{type(e).__name__} - {e}")
+        print(f"    栈名可能不符：若实际部署的栈不是 {CFN_STACK_NAME}，"
+              f"请 export OPC_CFN_STACK_NAME=<实际栈名> 后重跑")
         return None
     stacks = resp.get("Stacks", [])
     if not stacks:
@@ -144,7 +146,9 @@ def check_execution_role(region: str, account_id: str) -> str | None:
     role_arn = find_role_from_cfn_outputs(region)
 
     if not role_arn:
-        print(f"  ⚠ CFN 栈 {CFN_STACK_NAME} 未导出角色 ARN，回退 list_roles 匹配")
+        # 栈查不到（describe 已打印原因）或栈未导出角色 Output，都落到回退；
+        # 但两种情况含义不同，分开说，别让"查错栈"被误读成"没导出"
+        print(f"  ⚠ 未能从 CFN 栈 {CFN_STACK_NAME} 取到角色 ARN（栈不存在或未导出），回退 list_roles 匹配")
         iam = boto3.client("iam")
         all_names: list[str] = []
         try:
@@ -171,6 +175,11 @@ def check_execution_role(region: str, account_id: str) -> str | None:
             return None
 
         role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
+        # 回退是子串匹配，可能命中旧栈遗留的同名模式角色——记一条备注提醒
+        notes.append(
+            f"执行角色 {role_name} 来自 list_roles 回退匹配（非栈输出，可能非最新）。"
+            f"若后续权限报错，请 export OPC_CFN_STACK_NAME=<实际栈名> 后重跑本脚本。"
+        )
 
     print(f"  ✓ {role_arn.split('/')[-1]}")
 
