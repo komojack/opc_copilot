@@ -86,7 +86,11 @@ def upload_skill(s3, bucket: str, skill_name: str) -> str:
             local_path = os.path.join(dirpath, fn)
             rel = os.path.relpath(local_path, local_root).replace(os.sep, "/")
             key = f"{S3_PREFIX}/{skill_name}/{rel}"
-            s3.upload_file(local_path, bucket, key)
+            # 同 05_setup_kb.py：SCP 要求 PutObject 带 SSE 头，否则被显式拒绝。
+            s3.upload_file(
+                local_path, bucket, key,
+                ExtraArgs={"ServerSideEncryption": "AES256"},
+            )
             count += 1
     uri = f"s3://{bucket}/{S3_PREFIX}/{skill_name}/"
     print(f"  ✓ {skill_name:<20} {count} 个文件 → {uri}")
