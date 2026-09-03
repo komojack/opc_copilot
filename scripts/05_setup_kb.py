@@ -118,7 +118,12 @@ def upload_docs(region: str, bucket_name: str) -> int:
                 f"{filename} 为 {size} 字节，超过 1800 上限，上传会导致 ingestion 失败。"
                 f"请先精简，再重跑本脚本。"
             )
-        s3.upload_file(local_path, bucket_name, filename)
+        # cloudlab 的 SCP 强制 SSE：PutObject 不带 ServerSideEncryption 头会被显式拒绝，
+        # 与桶的默认加密无关（SCP 看的是请求头）。
+        s3.upload_file(
+            local_path, bucket_name, filename,
+            ExtraArgs={"ServerSideEncryption": "AES256"},
+        )
         print(f"  已上传 {filename}（{size} 字节）")
         count += 1
     if count == 0:
